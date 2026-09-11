@@ -1,0 +1,7 @@
+import { getStore } from "@netlify/blobs";
+const DEFAULT={launch:false,staleDays:3,autoPauseDays:7,legalReady:false,siteName:"FootDeals"};
+const json=(b,s=200)=>new Response(JSON.stringify(b),{status:s,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
+const adminOK=req=>{const x=Netlify.env.get("FOOTDEALS_ADMIN_SECRET")||"";return !!x&&(req.headers.get("authorization")||"")===`Bearer ${x}`};
+async function read(){return {...DEFAULT,...((await getStore({name:"footdeals-data",consistency:"strong"}).get("settings",{type:"json"}))||{})}}
+export default async req=>{try{if(req.method==='GET')return json(await read());if(req.method!=='PUT')return json({error:'Méthode non autorisée'},405);if(!adminOK(req))return json({error:'Accès administrateur requis'},401);const b=await req.json().catch(()=>({}));const cur=await read();const legalReady=Boolean(b.legalReady);const requestedLaunch=Boolean(b.launch);if(requestedLaunch&&!legalReady)return json({error:'Complète les mentions légales avant d’activer l’indexation.'},400);const next={...cur,launch:requestedLaunch,legalReady,staleDays:Math.min(14,Math.max(1,Number(b.staleDays)||3)),autoPauseDays:Math.min(30,Math.max(3,Number(b.autoPauseDays)||7)),siteName:'FootDeals',updatedAt:new Date().toISOString()};await getStore({name:"footdeals-data",consistency:"strong"}).setJSON("settings",next);return json(next)}catch(e){return json({error:'Erreur paramètres'},500)}};
+export const config={path:"/api/settings"};
