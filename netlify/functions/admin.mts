@@ -27,6 +27,7 @@ function cleanImportedDeal(raw: any) {
   const old = Math.max(0, Number(raw?.old) || 0);
   const price = Math.max(0, Number(raw?.price) || 0);
   const id = Number(raw?.id);
+  const affiliateUrl = safeUrl(raw?.affiliate_url);
   return {
     ...raw,
     id: Number.isSafeInteger(id) && id > 0 ? id : 0,
@@ -42,8 +43,9 @@ function cleanImportedDeal(raw: any) {
     price,
     discount: old > price ? Math.round((1 - price / old) * 100) : 0,
     url: safeUrl(raw?.url),
+    affiliate_url: affiliateUrl,
     source: text(raw?.source, 120),
-    affiliate: Boolean(raw?.affiliate),
+    affiliate: Boolean(raw?.affiliate || affiliateUrl),
     featured: Boolean(raw?.featured),
     expires: text(raw?.expires, 20),
     verified_at: text(raw?.verified_at, 50) || new Date().toISOString(),
