@@ -1,0 +1,8 @@
+{
+  "name": "footdeals",
+  "private": true,
+  "version": "2.0.0",
+  "dependencies": {
+    "@netlify/blobs": "11.0.3"
+  }
+}
