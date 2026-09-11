@@ -1,0 +1,73 @@
+name: Validate FootDeals
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check app.js
+          node --check service-worker.js
+
+      - name: Validate project files
+        shell: python
+        run: |
+          from pathlib import Path
+          import json, re, sys
+
+          root = Path('.')
+          required = [
+              'index.html', 'app.js', 'styles.css', 'deals.json',
+              'manifest.webmanifest', 'service-worker.js', 'netlify.toml',
+              'netlify/functions/admin.mts', 'netlify/functions/deals.mts',
+              'netlify/functions/health.mts', 'netlify/functions/stats.mts',
+          ]
+          missing = [p for p in required if not (root / p).exists()]
+          if missing:
+              print('Missing required files:', ', '.join(missing))
+              sys.exit(1)
+
+          with open('deals.json', encoding='utf-8') as f:
+              deals = json.load(f)
+          if not isinstance(deals, list):
+              raise SystemExit('deals.json must contain a list')
+          ids = [d.get('id') for d in deals]
+          if len(ids) != len(set(ids)):
+              raise SystemExit('Duplicate deal IDs found')
+          required_deal_keys = {'id', 'cat', 'brand', 'name', 'merchant', 'price', 'url', 'status'}
+          for i, deal in enumerate(deals):
+              absent = sorted(required_deal_keys - set(deal))
+              if absent:
+                  raise SystemExit(f'Deal #{i} missing keys: {absent}')
+
+          broken = []
+          for page in root.glob('*.html'):
+              text = page.read_text(encoding='utf-8')
+              for attr, value in re.findall(r'\b(href|src)=["\']([^"\']+)', text, flags=re.I):
+                  if value.startswith(('http://', 'https://', 'mailto:', 'tel:', '#', 'data:', 'javascript:', '/api/', '/out/', '/d/')):
+                      continue
+                  clean = value.split('?', 1)[0].split('#', 1)[0]
+                  if clean and not (root / clean.lstrip('/')).exists():
+                      broken.append(f'{page}: {attr}={value}')
+          if broken:
+              print('Broken internal references:')
+              print('\n'.join(broken))
+              sys.exit(1)
+
+          print(f'Validation OK: {len(deals)} deals, no duplicate IDs, no broken internal references.')
