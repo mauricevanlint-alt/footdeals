@@ -30,6 +30,7 @@ jobs:
         run: |
           from pathlib import Path
           import json, re, sys
+          from urllib.parse import urlparse
 
           root = Path('.')
           required = [
@@ -56,6 +57,22 @@ jobs:
               if absent:
                   raise SystemExit(f'Deal #{i} missing keys: {absent}')
 
+              base_url = str(deal.get('url') or '')
+              parsed = urlparse(base_url)
+              if parsed.scheme not in ('http', 'https') or not parsed.netloc:
+                  raise SystemExit(f'Deal #{i} has invalid merchant URL')
+
+              affiliate_url = str(deal.get('affiliate_url') or '').strip()
+              affiliate = bool(deal.get('affiliate'))
+              if affiliate_url:
+                  parsed_aff = urlparse(affiliate_url)
+                  if parsed_aff.scheme not in ('http', 'https') or not parsed_aff.netloc:
+                      raise SystemExit(f'Deal #{i} has invalid affiliate_url')
+                  if not affiliate:
+                      raise SystemExit(f'Deal #{i} has affiliate_url but affiliate is false')
+              if affiliate and not affiliate_url:
+                  raise SystemExit(f'Deal #{i} is marked affiliate but has no affiliate_url')
+
           broken = []
           for page in root.glob('*.html'):
               text = page.read_text(encoding='utf-8')
@@ -70,4 +87,4 @@ jobs:
               print('\n'.join(broken))
               sys.exit(1)
 
-          print(f'Validation OK: {len(deals)} deals, no duplicate IDs, no broken internal references.')
+          print(f'Validation OK: {len(deals)} deals, affiliate links consistent, no duplicate IDs, no broken internal references.')
