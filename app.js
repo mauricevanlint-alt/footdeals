@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
-const state={deals:[],cat:'Tous',savedOnly:false,settings:{launch:false,staleDays:3},source:'fallback',lastFocus:null};
+const state={deals:[],cat:'Tous',savedOnly:false,settings:{launch:true,staleDays:3},source:'fallback',lastFocus:null};
 const qp=k=>new URLSearchParams(location.search).get(k)||'';
 const safe=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const euro=n=>new Intl.NumberFormat('fr-BE',{style:'currency',currency:'EUR'}).format(Number(n)||0);
