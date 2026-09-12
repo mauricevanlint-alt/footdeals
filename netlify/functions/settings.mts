@@ -1,5 +1,5 @@
 import { getStore } from "@netlify/blobs";
-const DEFAULT={launch:false,staleDays:3,autoPauseDays:7,legalReady:false,siteName:"FootDeals"};
+const DEFAULT={launch:true,staleDays:3,autoPauseDays:7,legalReady:true,siteName:"FootDeals"};
 const json=(b,s=200)=>new Response(JSON.stringify(b),{status:s,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
 const adminOK=req=>{const x=Netlify.env.get("FOOTDEALS_ADMIN_SECRET")||"";return !!x&&(req.headers.get("authorization")||"")===`Bearer ${x}`};
 async function read(){return {...DEFAULT,...((await getStore({name:"footdeals-data",consistency:"strong"}).get("settings",{type:"json"}))||{})}}
